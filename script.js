@@ -1,8 +1,22 @@
-// ---------- Helpers & Constants ----------
+// ==================== SUPABASE CONFIG ====================
+const SUPABASE_URL = "https://wqehzuveoqbnwyrjqspb.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxZWh6dXZlb3Fibnd5cmpxc3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxOTE1MjQsImV4cCI6MjEwMTc2NzUyNH0.Tghgkh7JJfl-5Bv7MlfYDJJarMPQmspDFZf4t1FteYQ";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const DEFAULT_USER = "admin";
+const DEFAULT_PASS = "1234";
+
+// ==================== STATE ====================
+let members = [];
+let currentTab = "members";
+let selectedMemberId = null;
+let selectedDetailMonth = "";
+let addPlanSelected = "cardio";
+
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
 const daysInMonth = (key) => {
   const [y, m] = key.split("-").map(Number);
   return new Date(y, m, 0).getDate();
@@ -16,151 +30,158 @@ const PLANS = {
   basic: { label: "Weights Only", price: 800 },
 };
 
-// Owner Credentials
-const DEFAULT_OWNER = {
-  username: "hustle_owner",
-  password: "hustlegymowner"
-};
-const AUTH_KEY = "gym_owner_creds";
+// ==================== SMART DUE DATE & HIGHLIGHT LOGIC ====================
 
-const seedMembers = () => [
-  {
-    id: uid(),
-    name: "Rohit Sharma",
-    phone: "9876543210",
-    joinDate: "2026-03-14",
-    plan: "cardio",
-    fees: { [todayKey]: "paid" },
-    attendance: { [todayKey]: [2, 3, 5, 6, 7, 9, 10] },
-  },
-  {
-    id: uid(),
-    name: "Ankita Verma",
-    phone: "9823456712",
-    joinDate: "2025-11-02",
-    plan: "basic",
-    fees: { [todayKey]: "due" },
-    attendance: { [todayKey]: [1, 2, 4] },
-  },
-  {
-    id: uid(),
-    name: "Vikram Singh",
-    phone: "9911223344",
-    joinDate: "2026-06-20",
-    plan: "cardio",
-    fees: {},
-    attendance: { [todayKey]: [1, 2, 3, 4, 6, 7, 8, 9, 11, 12] },
-  },
-];
-
-// ---------- Application State ----------
-let members = [];
-let currentTab = "members";
-let selectedMemberId = null;
-let selectedDetailMonth = todayKey;
-let addPlanSelected = "cardio";
-
-// ---------- Owner Auth Management ----------
-function initOwnerAuth() {
-  if (!localStorage.getItem(AUTH_KEY)) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(DEFAULT_OWNER));
-  }
-}
-
-function handleAuthSubmit() {
-  const usernameInput = document.getElementById("auth-username").value.trim();
-  const passwordInput = document.getElementById("auth-password").value.trim();
-  const errorEl = document.getElementById("auth-error");
-
-  errorEl.classList.add("hidden");
-
-  if (!usernameInput || !passwordInput) {
-    errorEl.textContent = "Please enter both username and password.";
-    errorEl.classList.remove("hidden");
-    return;
+function getMemberPaymentStatus(member) {
+  const isMarkedPaid = member.fees?.[todayKey] === "paid";
+  if (isMarkedPaid) {
+    return { type: "PAID", text: "Paid", colorClass: "chip-ok", days: 0 };
   }
 
-  const savedCreds = JSON.parse(localStorage.getItem(AUTH_KEY) || JSON.stringify(DEFAULT_OWNER));
+  const isMarkedDueManually = member.fees?.[todayKey] === "due";
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (usernameInput === savedCreds.username && passwordInput === savedCreds.password) {
-    document.getElementById("auth-screen").classList.add("hidden");
-    initApp();
+  const rawJoinDate = member.joinDate || member.joindate;
+  if (!rawJoinDate) {
+    return { type: "UPCOMING", text: "Unset", colorClass: "chip-default", days: 0 };
+  }
+
+  const joinDate = new Date(rawJoinDate);
+  const joinDay = joinDate.getDate();
+
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const targetDay = Math.min(joinDay, lastDay);
+
+  const dueDate = new Date(currentYear, currentMonth, targetDay);
+  dueDate.setHours(0, 0, 0, 0);
+
+  const diffTime = today.getTime() - dueDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0 || isMarkedDueManually) {
+    const overdueDays = diffDays > 0 ? diffDays : 1;
+    return {
+      type: "OVERDUE",
+      text: `${overdueDays}d Overdue`,
+      colorClass: "chip-red",
+      days: overdueDays,
+      dueDateStr: `${targetDay} ${MONTHS[currentMonth]}`
+    };
+  } else if (diffDays >= -3 && diffDays <= 0) {
+    const daysLeft = Math.abs(diffDays);
+    return {
+      type: "DUE_SOON",
+      text: daysLeft === 0 ? "Due Today" : `Due in ${daysLeft}d`,
+      colorClass: "bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]",
+      days: diffDays,
+      dueDateStr: `${targetDay} ${MONTHS[currentMonth]}`
+    };
   } else {
-    errorEl.textContent = "Invalid username or password.";
-    errorEl.classList.remove("hidden");
+    return {
+      type: "UPCOMING",
+      text: `Due ${targetDay}th`,
+      colorClass: "chip-default",
+      days: diffDays,
+      dueDateStr: `${targetDay} ${MONTHS[currentMonth]}`
+    };
   }
 }
 
-// ---------- Storage Wrappers ----------
-async function loadMembers() {
-  try {
-    if (window.storage && typeof window.storage.get === "function") {
-      const res = await window.storage.get("members", false);
-      if (res && res.value) return JSON.parse(res.value);
+function sendWhatsAppReminder(member) {
+  const planInfo = PLANS[member.plan] || PLANS.cardio;
+  const statusInfo = getMemberPaymentStatus(member);
+
+  let msg = `Hi ${member.name}! HUSTLE GYM se aapki monthly fees (₹${planInfo.price}) `;
+  if (statusInfo.days > 0) {
+    msg += `${statusInfo.days} din se overdue hai (Due Date: ${statusInfo.dueDateStr}). `;
+  } else {
+    msg += `due hai. `;
+  }
+  msg += `Kripya karke payment update karayein. Thank you! 💪🏋️‍♂️`;
+
+  const cleanPhone = String(member.phone).replace(/\D/g, "");
+  const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, "_blank");
+}
+
+// ==================== DATABASE API CALLS ====================
+
+async function fetchMembers() {
+  const { data, error } = await supabaseClient
+    .from('members')
+    .select('*');
+
+  if (error) {
+    console.error("Supabase Error:", error.message || error);
+  } else {
+    members = data || [];
+    renderViews();
+  }
+}
+
+async function dbAddMember(newMember) {
+  const { error } = await supabaseClient.from('members').insert([newMember]);
+  if (error) {
+    alert("Error adding member: " + error.message);
+  } else {
+    await fetchMembers();
+    hideAddModal();
+  }
+}
+
+async function dbUpdateMember(id, updatedFields) {
+  const { error } = await supabaseClient.from('members').update(updatedFields).eq('id', id);
+  if (error) {
+    alert("Error updating member: " + error.message);
+  } else {
+    await fetchMembers();
+  }
+}
+
+async function dbDeleteMember(id) {
+  const { error } = await supabaseClient.from('members').delete().eq('id', id);
+  if (error) {
+    alert("Error deleting member: " + error.message);
+  } else {
+    selectedMemberId = null;
+    hideDeleteModal();
+    await fetchMembers();
+  }
+}
+
+// ==================== AUTHENTICATION ====================
+
+function initLogin() {
+  const loginForm = document.getElementById("login-form");
+  if (!loginForm) return;
+
+  loginForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const u = document.getElementById("login-username")?.value.trim();
+    const p = document.getElementById("login-password")?.value.trim();
+    const err = document.getElementById("auth-error");
+
+    if (u === DEFAULT_USER && p === DEFAULT_PASS) {
+      document.getElementById("auth-screen")?.classList.add("hidden");
+      document.getElementById("main-app")?.classList.remove("hidden");
+      initApp();
     } else {
-      const res = localStorage.getItem("members");
-      if (res) return JSON.parse(res);
+      err?.classList.remove("hidden");
     }
-  } catch (e) {
-    console.error("Storage load error:", e);
-  }
-  return null;
-}
+  });
 
-async function saveMembers(data) {
-  try {
-    if (window.storage && typeof window.storage.set === "function") {
-      await window.storage.set("members", JSON.stringify(data), false);
-    } else {
-      localStorage.setItem("members", JSON.stringify(data));
-    }
-  } catch (e) {
-    console.error("Save failed", e);
-  }
-}
-
-// ---------- UI Utilities ----------
-function createAvatarHTML(name, size = 44) {
-  const initials = (name || "M").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-  const fontSize = Math.round(size * 0.34);
-  return `
-    <div style="width: ${size}px; height: ${size}px; border-radius: 12px;" class="glass flex items-center justify-center shrink-0">
-      <span style="font-size: ${fontSize}px;" class="font-bold text-white tracking-tight">${initials}</span>
-    </div>
-  `;
-}
-
-function attachRippleEffect() {
-  document.querySelectorAll(".ripple-surface").forEach((el) => {
-    if (el.dataset.rippleBound) return;
-    el.dataset.rippleBound = "true";
-
-    el.addEventListener("pointerdown", (e) => {
-      const rect = el.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
-      const x = e.clientX - rect.left - size / 2;
-      const y = e.clientY - rect.top - size / 2;
-
-      const dot = document.createElement("span");
-      const isRed = el.classList.contains("tint-red");
-      dot.className = `ripple-dot ${isRed ? "tint-red" : ""}`;
-      dot.style.width = dot.style.height = `${size}px`;
-      dot.style.left = `${x}px`;
-      dot.style.top = `${y}px`;
-
-      el.appendChild(dot);
-      setTimeout(() => dot.remove(), 650);
-    });
+  document.getElementById("btn-logout")?.addEventListener("click", () => {
+    document.getElementById("main-app")?.classList.add("hidden");
+    document.getElementById("auth-screen")?.classList.remove("hidden");
   });
 }
 
-function refreshIcons() {
-  if (window.lucide) {
-    lucide.createIcons();
-  }
-}
+// ==================== NAVIGATION & RENDER ====================
 
-// ---------- Navigation UI ----------
 function updateNavigationUI() {
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     const tab = btn.dataset.tab;
@@ -169,92 +190,98 @@ function updateNavigationUI() {
     const text = btn.querySelector(".nav-text");
 
     if (isActive) {
-      icon?.classList.remove("text-white");
+      icon?.classList.remove("text-white/60");
       icon?.classList.add("text-[#FF6B6B]");
-      text?.classList.remove("text-white");
+      text?.classList.remove("text-white/60");
       text?.classList.add("text-[#FF6B6B]");
     } else {
       icon?.classList.remove("text-[#FF6B6B]");
-      icon?.classList.add("text-white");
+      icon?.classList.add("text-white/60");
       text?.classList.remove("text-[#FF6B6B]");
-      text?.classList.add("text-white");
+      text?.classList.add("text-white/60");
     }
   });
 
-  const dueCount = members.filter((m) => m.fees?.[todayKey] === "due").length;
+  const dueCount = members.filter((m) => {
+    const st = getMemberPaymentStatus(m);
+    return st.type === "OVERDUE";
+  }).length;
+
   const badge = document.getElementById("due-badge");
-  if (dueCount > 0) {
-    badge.textContent = dueCount;
-    badge.classList.remove("hidden");
-  } else {
-    badge.classList.add("hidden");
+  if (badge) {
+    if (dueCount > 0) {
+      badge.textContent = dueCount;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
   }
 
   const bottomNav = document.getElementById("bottom-nav");
-  if (selectedMemberId) {
-    bottomNav.classList.add("hidden");
-  } else {
-    bottomNav.classList.remove("hidden");
+  if (bottomNav) {
+    selectedMemberId ? bottomNav.classList.add("hidden") : bottomNav.classList.remove("hidden");
   }
 }
 
 function renderViews() {
   updateNavigationUI();
-
   document.querySelectorAll(".view-section").forEach((sec) => sec.classList.add("hidden"));
 
   if (selectedMemberId) {
-    document.getElementById("view-detail").classList.remove("hidden");
+    document.getElementById("view-detail")?.classList.remove("hidden");
     renderDetailView();
   } else if (currentTab === "members") {
-    document.getElementById("view-members").classList.remove("hidden");
+    document.getElementById("view-members")?.classList.remove("hidden");
     renderMembersView();
   } else if (currentTab === "fees") {
-    document.getElementById("view-fees").classList.remove("hidden");
+    document.getElementById("view-fees")?.classList.remove("hidden");
     renderFeesView();
   } else if (currentTab === "due") {
-    document.getElementById("view-due").classList.remove("hidden");
+    document.getElementById("view-due")?.classList.remove("hidden");
     renderDueView();
   }
 
-  attachRippleEffect();
   refreshIcons();
 }
 
-// ---------- Render Views ----------
+function createAvatarHTML(name) {
+  const initials = (name || "M").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return `
+    <div class="w-10 h-10 rounded-xl glass flex items-center justify-center shrink-0 border border-white/10">
+      <span class="font-bold text-white text-xs tracking-tight">${initials}</span>
+    </div>
+  `;
+}
+
 function renderMembersView() {
-  document.getElementById("members-count").textContent = `${members.length} active members`;
+  const countEl = document.getElementById("members-count");
+  if (countEl) countEl.textContent = `${members.length} active members`;
+
   const container = document.getElementById("members-list");
+  if (!container) return;
 
   if (members.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-16">
-        <i data-lucide="dumbbell" class="w-8 h-8 mx-auto text-white mb-3"></i>
-        <p class="text-white text-sm">No members yet. Add your first one.</p>
-      </div>`;
+    container.innerHTML = `<p class="text-center py-12 text-xs text-white/40">No members found.</p>`;
     return;
   }
 
   container.innerHTML = members
     .map((m, i) => {
-      const status = m.fees?.[todayKey];
+      const statusInfo = getMemberPaymentStatus(m);
       const present = (m.attendance?.[todayKey] || []).length;
-      let chipHTML = '<span class="chip chip-default">Unset</span>';
-
-      if (status === "paid") chipHTML = '<span class="chip chip-ok">Paid</span>';
-      if (status === "due") chipHTML = '<span class="chip chip-red">Due</span>';
-
       const planInfo = PLANS[m.plan] || PLANS.cardio;
 
+      const borderGlow = statusInfo.type === "OVERDUE" ? "border-red-500/40 bg-red-950/10" : "border-white/10";
+
       return `
-      <button data-id="${m.id}" class="btn-member-card ripple-surface glass glass-sheen relative w-full rounded-2xl p-3.5 flex items-center gap-3 active:scale-[0.98] transition text-left">
-        <span class="font-mono text-[11px] text-white w-5">${String(i + 1).padStart(2, "0")}</span>
+      <button data-id="${m.id}" class="btn-member-card glass glass-sheen relative w-full rounded-2xl p-3 flex items-center gap-3 active:scale-[0.98] transition text-left border ${borderGlow}">
+        <span class="font-mono text-[10px] text-white/40 w-4">${String(i + 1).padStart(2, "0")}</span>
         ${createAvatarHTML(m.name)}
         <div class="flex-1 min-w-0">
-          <p class="font-bold text-white truncate">${m.name}</p>
-          <p class="text-white text-xs mt-0.5">${present} days present · ${planInfo.label}</p>
+          <p class="font-bold text-sm text-white truncate">${m.name}</p>
+          <p class="text-white/60 text-[11px] mt-0.5">${present} days present · ${planInfo.label}</p>
         </div>
-        ${chipHTML}
+        <span class="${statusInfo.colorClass}">${statusInfo.text}</span>
       </button>
     `;
     })
@@ -277,35 +304,31 @@ function renderFeesView() {
   document.getElementById("fees-pending-count").textContent = pending.length;
 
   const container = document.getElementById("fees-list");
-
-  if (members.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-16">
-        <i data-lucide="wallet" class="w-8 h-8 mx-auto text-white mb-3"></i>
-        <p class="text-white text-sm">No members to bill yet.</p>
-      </div>`;
-    return;
-  }
+  if (!container) return;
 
   container.innerHTML = members
     .map((m) => {
       const status = m.fees?.[todayKey];
+      const statusInfo = getMemberPaymentStatus(m);
       const paidStyle = status === "paid" ? 'style="background: linear-gradient(135deg, #22C55E, #15803D)"' : "";
       const dueStyle = status === "due" ? 'style="background: linear-gradient(135deg, #EF4444, #B91C1C)"' : "";
       const planInfo = PLANS[m.plan] || PLANS.cardio;
 
       return `
-      <div class="glass glass-sheen relative rounded-2xl p-3.5 flex items-center gap-3">
-        ${createAvatarHTML(m.name, 40)}
+      <div class="glass glass-sheen relative rounded-2xl p-3 flex items-center gap-3">
+        ${createAvatarHTML(m.name)}
         <div class="flex-1 min-w-0">
-          <p class="font-bold text-white truncate">${m.name}</p>
-          <p class="text-white text-xs mt-0.5 font-mono">₹${planInfo.price} · ${planInfo.label}</p>
+          <div class="flex items-center gap-2">
+            <p class="font-bold text-sm text-white truncate">${m.name}</p>
+            <span class="${statusInfo.colorClass}">${statusInfo.text}</span>
+          </div>
+          <p class="text-white/60 text-xs mt-0.5 font-mono">₹${planInfo.price} · ${planInfo.label}</p>
         </div>
-        <div class="flex gap-2 shrink-0">
-          <button data-id="${m.id}" data-status="paid" ${paidStyle} class="btn-mark-fee ripple-surface px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition active:scale-95 ${status === "paid" ? "text-white" : "glass text-white"}">
+        <div class="flex gap-1.5 shrink-0">
+          <button data-id="${m.id}" data-status="paid" ${paidStyle} class="btn-mark-fee px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase transition active:scale-95 ${status === "paid" ? "text-white" : "glass text-white/80"}">
             Paid
           </button>
-          <button data-id="${m.id}" data-status="due" ${dueStyle} class="btn-mark-fee ripple-surface tint-red px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition active:scale-95 ${status === "due" ? "text-white" : "glass text-white"}">
+          <button data-id="${m.id}" data-status="due" ${dueStyle} class="btn-mark-fee px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase transition active:scale-95 ${status === "due" ? "text-white" : "glass text-white/80"}">
             Due
           </button>
         </div>
@@ -315,53 +338,68 @@ function renderFeesView() {
     .join("");
 
   container.querySelectorAll(".btn-mark-fee").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      markFee(btn.dataset.id, btn.dataset.status);
+      const id = btn.dataset.id;
+      const status = btn.dataset.status;
+      const m = members.find((item) => item.id === id);
+      if (m) {
+        const updatedFees = { ...(m.fees || {}), [todayKey]: status };
+        await dbUpdateMember(id, { fees: updatedFees });
+      }
     });
   });
 }
 
 function renderDueView() {
-  const due = members.filter((m) => m.fees?.[todayKey] === "due");
-  document.getElementById("due-summary-text").textContent = `${due.length} member${due.length !== 1 ? "s" : ""} unpaid this month`;
+  const dueMembers = members.filter((m) => {
+    const st = getMemberPaymentStatus(m);
+    return st.type === "OVERDUE";
+  });
+
+  document.getElementById("due-summary-text").textContent = `${dueMembers.length} member(s) overdue for fees`;
 
   const container = document.getElementById("due-list");
+  if (!container) return;
 
-  if (due.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-16">
-        <i data-lucide="check-circle-2" class="w-8 h-8 mx-auto text-white mb-3"></i>
-        <p class="text-white text-sm">All caught up — nobody's due.</p>
-      </div>`;
+  if (dueMembers.length === 0) {
+    container.innerHTML = `<p class="text-center py-12 text-xs text-white/40">Awesome! Sabhi members ki fees clear hai.</p>`;
     return;
   }
 
-  container.innerHTML = due
+  container.innerHTML = dueMembers
     .map((m) => {
       const planInfo = PLANS[m.plan] || PLANS.cardio;
+      const statusInfo = getMemberPaymentStatus(m);
+      const joinDateStr = m.joinDate || m.joindate || "N/A";
+
       return `
-      <div class="glass-red glass-sheen relative rounded-2xl p-4">
+      <div class="glass-red glass-sheen relative rounded-2xl p-4 space-y-3 border border-red-500/30">
         <div class="flex items-center gap-3">
-          ${createAvatarHTML(m.name, 44)}
+          ${createAvatarHTML(m.name)}
           <div class="flex-1 min-w-0">
-            <p class="font-bold text-white truncate">${m.name}</p>
-            <p class="text-white text-xs mt-0.5 font-mono">Joined ${m.joinDate}</p>
+            <p class="font-bold text-sm text-white truncate">${m.name}</p>
+            <p class="text-white/60 text-xs mt-0.5 font-mono">Joined ${joinDateStr}</p>
           </div>
-          <span class="chip chip-red">₹${planInfo.price} due</span>
+          <span class="chip chip-red font-bold">${statusInfo.text}</span>
         </div>
-        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/20">
-          <div class="flex items-center gap-1.5 text-white text-xs font-mono">
-            <i data-lucide="phone" class="w-3 h-3 text-white"></i> ${m.phone}
-          </div>
-          <div class="flex items-center gap-1.5 text-white text-xs">
-            <i data-lucide="dumbbell" class="w-3 h-3 text-white"></i> ${planInfo.label}
-          </div>
+        <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs font-mono text-white/80">
+          <span class="text-red-300 font-bold">₹${planInfo.price} (${planInfo.label})</span>
+          <button data-id="${m.id}" class="btn-send-wa px-3 py-1.5 rounded-xl bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> WhatsApp
+          </button>
         </div>
       </div>
     `;
     })
     .join("");
+
+  container.querySelectorAll(".btn-send-wa").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const m = members.find((item) => item.id === btn.dataset.id);
+      if (m) sendWhatsAppReminder(m);
+    });
+  });
 }
 
 function renderDetailView() {
@@ -370,16 +408,21 @@ function renderDetailView() {
 
   const initials = member.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const planInfo = PLANS[member.plan] || PLANS.cardio;
+  const statusInfo = getMemberPaymentStatus(member);
 
   document.getElementById("detail-avatar").querySelector("span").textContent = initials;
   document.getElementById("detail-name").textContent = member.name;
   document.getElementById("detail-plan-chip").textContent = `${planInfo.label} · ₹${planInfo.price}`;
-  document.getElementById("detail-phone").textContent = member.phone;
-  document.getElementById("detail-joined").textContent = member.joinDate;
+
+  const phoneEl = document.getElementById("detail-phone");
+  phoneEl.textContent = member.phone;
+  phoneEl.href = `tel:${member.phone}`;
+
+  document.getElementById("detail-joined").textContent = member.joinDate || member.joindate || "N/A";
 
   const [y, m] = selectedDetailMonth.split("-");
   const monthName = `${MONTHS[Number(m) - 1]} ${y}`;
-  document.getElementById("detail-fee-month").textContent = monthName;
+  document.getElementById("detail-fee-month").textContent = `${monthName} Fee`;
 
   const feeStatus = member.fees?.[selectedDetailMonth];
   const feeStatusText = document.getElementById("detail-fee-status");
@@ -389,23 +432,17 @@ function renderDetailView() {
   btnPaid.removeAttribute("style");
   btnDue.removeAttribute("style");
 
-  const paidIcon = btnPaid.querySelector("i, svg");
-  const dueIcon = btnDue.querySelector("i, svg");
-
-  if (paidIcon) paidIcon.setAttribute("class", "w-[18px] h-[18px] text-white");
-  if (dueIcon) dueIcon.setAttribute("class", "w-[18px] h-[18px] text-white");
-
   if (feeStatus === "paid") {
-    feeStatusText.textContent = "Paid";
-    feeStatusText.className = "text-[#86EFAC] font-bold";
+    feeStatusText.textContent = "PAID";
+    feeStatusText.className = "text-emerald-400 font-bold";
     btnPaid.style.background = "linear-gradient(135deg, #22C55E, #15803D)";
-  } else if (feeStatus === "due") {
-    feeStatusText.textContent = "Due";
-    feeStatusText.className = "text-[#FCA5A5] font-bold";
+  } else if (feeStatus === "due" || statusInfo.type === "OVERDUE") {
+    feeStatusText.textContent = `DUE (${statusInfo.text})`;
+    feeStatusText.className = "text-red-400 font-bold";
     btnDue.style.background = "linear-gradient(135deg, #EF4444, #B91C1C)";
   } else {
-    feeStatusText.textContent = "Not set";
-    feeStatusText.className = "text-white font-bold";
+    feeStatusText.textContent = "NOT SET";
+    feeStatusText.className = "text-white/50 font-bold";
   }
 
   const dim = daysInMonth(selectedDetailMonth);
@@ -419,9 +456,9 @@ function renderDetailView() {
   gridContainer.innerHTML = Array.from({ length: dim }, (_, i) => i + 1)
     .map((day) => {
       const isPresent = presentDays.includes(day);
-      const bgStyle = isPresent ? 'style="background: linear-gradient(135deg, #EF4444, #991B1B)"' : "";
+      const bgStyle = isPresent ? 'style="background: linear-gradient(135deg, #FF6B6B, #D32F2F)"' : "";
       return `
-      <button data-day="${day}" ${bgStyle} class="btn-attendance-day ripple-surface aspect-square rounded-lg flex items-center justify-center text-xs font-mono font-bold transition active:scale-90 ${isPresent ? "text-white shadow-[0_2px_8px_rgba(220,38,38,0.4)]" : "glass text-white"}">
+      <button data-day="${day}" ${bgStyle} class="btn-attendance-day aspect-square rounded-xl flex items-center justify-center text-xs font-mono font-bold transition active:scale-90 ${isPresent ? "text-white shadow-lg" : "glass text-white/70 hover:text-white"}">
         ${day}
       </button>
     `;
@@ -429,77 +466,30 @@ function renderDetailView() {
     .join("");
 
   gridContainer.querySelectorAll(".btn-attendance-day").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      toggleAttendanceDay(Number(btn.dataset.day));
-    });
+    btn.addEventListener("click", () => toggleAttendanceDay(Number(btn.dataset.day)));
   });
 }
 
-// ---------- Data Action Logic ----------
-function markFee(id, status) {
-  members = members.map((m) => (m.id === id ? { ...m, fees: { ...m.fees, [todayKey]: status } } : m));
-  saveMembers(members);
-  renderViews();
-}
-
-function setDetailFee(status) {
-  if (!selectedMemberId) return;
-  members = members.map((m) => (m.id === selectedMemberId ? { ...m, fees: { ...m.fees, [selectedDetailMonth]: status } } : m));
-  saveMembers(members);
-  renderViews();
-}
-
-function toggleAttendanceDay(day) {
+async function toggleAttendanceDay(day) {
   if (!selectedMemberId) return;
   const member = members.find((m) => m.id === selectedMemberId);
   if (!member) return;
 
   const presentDays = new Set(member.attendance?.[selectedDetailMonth] || []);
-  if (presentDays.has(day)) {
-    presentDays.delete(day);
-  } else {
-    presentDays.add(day);
-  }
+  presentDays.has(day) ? presentDays.delete(day) : presentDays.add(day);
 
   const sortedDays = Array.from(presentDays).sort((a, b) => a - b);
-  members = members.map((m) => (m.id === selectedMemberId ? { ...m, attendance: { ...m.attendance, [selectedDetailMonth]: sortedDays } } : m));
-  saveMembers(members);
-  renderViews();
+  const updatedAttendance = { ...(member.attendance || {}), [selectedDetailMonth]: sortedDays };
+
+  await dbUpdateMember(selectedMemberId, { attendance: updatedAttendance });
 }
 
-function shiftMonth(delta) {
-  const [y, m] = selectedDetailMonth.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  selectedDetailMonth = monthKey(d);
-  renderViews();
-}
+// ==================== MODALS & EVENTS ====================
 
-function deleteCurrentMember() {
-  if (!selectedMemberId) return;
-  members = members.filter((m) => m.id !== selectedMemberId);
-  saveMembers(members);
-  selectedMemberId = null;
-  hideDeleteModal();
-  renderViews();
-}
-
-function addMember(newMember) {
-  members = [newMember, ...members];
-  saveMembers(members);
-  hideAddModal();
-  renderViews();
-}
-
-// ---------- Modals Logic ----------
 function showAddModal() {
   document.getElementById("input-name").value = "";
   document.getElementById("input-phone").value = "";
   document.getElementById("input-join-date").value = new Date().toISOString().slice(0, 10);
-  document.getElementById("add-error").classList.add("hidden");
-
-  addPlanSelected = "cardio";
-  updatePlanSelectionUI();
-
   document.getElementById("modal-add").classList.remove("hidden");
 }
 
@@ -507,28 +497,7 @@ function hideAddModal() {
   document.getElementById("modal-add").classList.add("hidden");
 }
 
-function updatePlanSelectionUI() {
-  document.querySelectorAll(".plan-option").forEach((btn) => {
-    const planKey = btn.dataset.plan;
-    const priceText = btn.querySelector(".plan-price");
-    const checkIcon = btn.querySelector(".check-icon");
-
-    if (planKey === addPlanSelected) {
-      btn.className = "plan-option ripple-surface text-left rounded-2xl p-4 transition relative glass-red";
-      priceText.className = "plan-price font-mono font-bold text-xl text-[#FCA5A5]";
-      checkIcon.classList.remove("hidden");
-    } else {
-      btn.className = "plan-option ripple-surface text-left rounded-2xl p-4 transition relative glass";
-      priceText.className = "plan-price font-mono font-bold text-xl text-white";
-      checkIcon.classList.add("hidden");
-    }
-  });
-}
-
 function showDeleteModal() {
-  const member = members.find((m) => m.id === selectedMemberId);
-  if (!member) return;
-  document.getElementById("delete-title").textContent = `Remove ${member.name}?`;
   document.getElementById("modal-delete").classList.remove("hidden");
 }
 
@@ -536,7 +505,10 @@ function hideDeleteModal() {
   document.getElementById("modal-delete").classList.add("hidden");
 }
 
-// ---------- Event Listeners Setup ----------
+function refreshIcons() {
+  if (window.lucide) window.lucide.createIcons();
+}
+
 function bindEvents() {
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -546,56 +518,46 @@ function bindEvents() {
     });
   });
 
-  document.getElementById("btn-back-detail").addEventListener("click", () => {
+  document.getElementById("btn-back-detail")?.addEventListener("click", () => {
     selectedMemberId = null;
     renderViews();
   });
 
-  document.getElementById("btn-set-paid").addEventListener("click", () => setDetailFee("paid"));
-  document.getElementById("btn-set-due").addEventListener("click", () => setDetailFee("due"));
+  document.getElementById("btn-set-paid")?.addEventListener("click", async () => {
+    const member = members.find((m) => m.id === selectedMemberId);
+    if (member) {
+      const updatedFees = { ...(member.fees || {}), [selectedDetailMonth]: "paid" };
+      await dbUpdateMember(selectedMemberId, { fees: updatedFees });
+    }
+  });
 
-  document.getElementById("btn-month-prev").addEventListener("click", () => shiftMonth(-1));
-  document.getElementById("btn-month-next").addEventListener("click", () => shiftMonth(1));
+  document.getElementById("btn-set-due")?.addEventListener("click", async () => {
+    const member = members.find((m) => m.id === selectedMemberId);
+    if (member) {
+      const updatedFees = { ...(member.fees || {}), [selectedDetailMonth]: "due" };
+      await dbUpdateMember(selectedMemberId, { fees: updatedFees });
+    }
+  });
 
-  document.getElementById("btn-open-add").addEventListener("click", showAddModal);
-  document.getElementById("btn-close-add").addEventListener("click", hideAddModal);
-  document.getElementById("modal-add-overlay").addEventListener("click", hideAddModal);
+  document.getElementById("btn-open-add")?.addEventListener("click", showAddModal);
+  document.getElementById("btn-close-add")?.addEventListener("click", hideAddModal);
 
   document.querySelectorAll(".plan-option").forEach((btn) => {
     btn.addEventListener("click", () => {
       addPlanSelected = btn.dataset.plan;
-      updatePlanSelectionUI();
+      document.querySelectorAll(".plan-option").forEach((b) => b.classList.remove("border-[#FF6B6B]"));
+      btn.classList.add("border-[#FF6B6B]");
     });
   });
 
-  document.getElementById("input-phone").addEventListener("input", (e) => {
-    e.target.value = e.target.value.replace(/[^\d]/g, "");
-  });
-
-  document.getElementById("btn-submit-add").addEventListener("click", () => {
+  document.getElementById("btn-submit-add")?.addEventListener("click", async () => {
     const name = document.getElementById("input-name").value.trim();
     const phone = document.getElementById("input-phone").value.trim();
     const joinDate = document.getElementById("input-join-date").value;
-    const errorEl = document.getElementById("add-error");
-    const errorMsgEl = document.getElementById("add-error-msg");
 
-    if (!name) {
-      errorMsgEl.textContent = "Enter member's name.";
-      errorEl.classList.remove("hidden");
-      return;
-    }
-    if (!/^\d{7,15}$/.test(phone)) {
-      errorMsgEl.textContent = "Enter a valid phone number.";
-      errorEl.classList.remove("hidden");
-      return;
-    }
-    if (!joinDate) {
-      errorMsgEl.textContent = "Pick a date of join.";
-      errorEl.classList.remove("hidden");
-      return;
-    }
+    if (!name || !phone || !joinDate) return alert("All fields are required!");
 
-    addMember({
+    await dbAddMember({
       id: uid(),
       name,
       phone,
@@ -606,40 +568,19 @@ function bindEvents() {
     });
   });
 
-  document.getElementById("btn-delete-member").addEventListener("click", showDeleteModal);
-  document.getElementById("btn-cancel-delete").addEventListener("click", hideDeleteModal);
-  document.getElementById("modal-delete-overlay").addEventListener("click", hideDeleteModal);
-  document.getElementById("btn-confirm-delete").addEventListener("click", deleteCurrentMember);
+  document.getElementById("btn-delete-member")?.addEventListener("click", showDeleteModal);
+  document.getElementById("btn-cancel-delete")?.addEventListener("click", hideDeleteModal);
+  document.getElementById("btn-confirm-delete")?.addEventListener("click", async () => {
+    if (selectedMemberId) await dbDeleteMember(selectedMemberId);
+  });
 }
 
-// ---------- App Initialization ----------
-async function initApp() {
-  const loadedData = await loadMembers();
-  members = loadedData && loadedData.length ? loadedData : seedMembers();
-
-  const loadingScreen = document.getElementById("loading-screen");
-  if (loadingScreen) loadingScreen.classList.add("hidden");
-
-  document.getElementById("main-container").classList.remove("hidden");
-
+function initApp() {
   bindEvents();
-  renderViews();
+  fetchMembers();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  initOwnerAuth();
-
-  // Hide loading spinner so auth window is interactive
-  const loadingScreen = document.getElementById("loading-screen");
-  if (loadingScreen) {
-    loadingScreen.classList.add("hidden");
-  }
-
-  const authForm = document.getElementById("auth-form");
-  if (authForm) {
-    authForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      handleAuthSubmit();
-    });
-  }
+  initLogin();
+  refreshIcons();
 });
