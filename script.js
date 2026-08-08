@@ -2,6 +2,7 @@
 const SUPABASE_URL = "https://wqehzuveoqbnwyrjqspb.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxZWh6dXZlb3Fibnd5cmpxc3BiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxOTE1MjQsImV4cCI6MjEwMTc2NzUyNH0.Tghgkh7JJfl-5Bv7MlfYDJJarMPQmspDFZf4t1FteYQ";
 
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const DEFAULT_USER = "admin";
@@ -30,7 +31,29 @@ const PLANS = {
   basic: { label: "Weights Only", price: 800 },
 };
 
-// ==================== SMART DUE DATE & HIGHLIGHT LOGIC ====================
+// ==================== BILLING CALCULATOR ====================
+
+function calculateBillingTotal() {
+  const basePrice = PLANS[addPlanSelected]?.price || 1200;
+  const durationMonths = parseInt(document.getElementById("select-duration")?.value || "1");
+  const discountPercent = parseInt(document.getElementById("select-discount")?.value || "0");
+
+  const originalTotal = basePrice * durationMonths;
+  const discountAmount = (originalTotal * discountPercent) / 100;
+  const finalTotal = Math.round(originalTotal - discountAmount);
+
+  const lblOriginal = document.getElementById("lbl-original-price");
+  const lblDiscount = document.getElementById("lbl-discount-tag");
+  const lblFinal = document.getElementById("lbl-final-price");
+
+  if (lblOriginal) lblOriginal.textContent = `₹${originalTotal}`;
+  if (lblDiscount) lblDiscount.textContent = `(${discountPercent}% OFF)`;
+  if (lblFinal) lblFinal.textContent = `₹${finalTotal}`;
+
+  return { originalTotal, discountPercent, finalTotal, durationMonths };
+}
+
+// ==================== SMART DUE DATE LOGIC ====================
 
 function getMemberPaymentStatus(member) {
   const isMarkedPaid = member.fees?.[todayKey] === "paid";
@@ -95,7 +118,7 @@ function sendWhatsAppReminder(member) {
   const planInfo = PLANS[member.plan] || PLANS.cardio;
   const statusInfo = getMemberPaymentStatus(member);
 
-  let msg = `Hi ${member.name}! HUSTLE GYM se aapki monthly fees (₹${planInfo.price}) `;
+  let msg = `Hi ${member.name}! HUSTLE GYM se aapki fees (₹${member.total_price || planInfo.price}) `;
   if (statusInfo.days > 0) {
     msg += `${statusInfo.days} din se overdue hai (Due Date: ${statusInfo.dueDateStr}). `;
   } else {
@@ -270,6 +293,7 @@ function renderMembersView() {
       const statusInfo = getMemberPaymentStatus(m);
       const present = (m.attendance?.[todayKey] || []).length;
       const planInfo = PLANS[m.plan] || PLANS.cardio;
+      const durationText = m.duration ? `${m.duration} Mo` : "1 Mo";
 
       const borderGlow = statusInfo.type === "OVERDUE" ? "border-red-500/40 bg-red-950/10" : "border-white/10";
 
@@ -279,7 +303,7 @@ function renderMembersView() {
         ${createAvatarHTML(m.name)}
         <div class="flex-1 min-w-0">
           <p class="font-bold text-sm text-white truncate">${m.name}</p>
-          <p class="text-white/60 text-[11px] mt-0.5">${present} days present · ${planInfo.label}</p>
+          <p class="text-white/60 text-[11px] mt-0.5">${present} days present · ${planInfo.label} (${durationText})</p>
         </div>
         <span class="${statusInfo.colorClass}">${statusInfo.text}</span>
       </button>
@@ -313,6 +337,7 @@ function renderFeesView() {
       const paidStyle = status === "paid" ? 'style="background: linear-gradient(135deg, #22C55E, #15803D)"' : "";
       const dueStyle = status === "due" ? 'style="background: linear-gradient(135deg, #EF4444, #B91C1C)"' : "";
       const planInfo = PLANS[m.plan] || PLANS.cardio;
+      const displayPrice = m.total_price || planInfo.price;
 
       return `
       <div class="glass glass-sheen relative rounded-2xl p-3 flex items-center gap-3">
@@ -322,7 +347,7 @@ function renderFeesView() {
             <p class="font-bold text-sm text-white truncate">${m.name}</p>
             <span class="${statusInfo.colorClass}">${statusInfo.text}</span>
           </div>
-          <p class="text-white/60 text-xs mt-0.5 font-mono">₹${planInfo.price} · ${planInfo.label}</p>
+          <p class="text-white/60 text-xs mt-0.5 font-mono">₹${displayPrice} · ${planInfo.label}</p>
         </div>
         <div class="flex gap-1.5 shrink-0">
           <button data-id="${m.id}" data-status="paid" ${paidStyle} class="btn-mark-fee px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase transition active:scale-95 ${status === "paid" ? "text-white" : "glass text-white/80"}">
@@ -372,6 +397,7 @@ function renderDueView() {
       const planInfo = PLANS[m.plan] || PLANS.cardio;
       const statusInfo = getMemberPaymentStatus(m);
       const joinDateStr = m.joinDate || m.joindate || "N/A";
+      const displayPrice = m.total_price || planInfo.price;
 
       return `
       <div class="glass-red glass-sheen relative rounded-2xl p-4 space-y-3 border border-red-500/30">
@@ -384,7 +410,7 @@ function renderDueView() {
           <span class="chip chip-red font-bold">${statusInfo.text}</span>
         </div>
         <div class="flex items-center justify-between pt-2 border-t border-white/10 text-xs font-mono text-white/80">
-          <span class="text-red-300 font-bold">₹${planInfo.price} (${planInfo.label})</span>
+          <span class="text-red-300 font-bold">₹${displayPrice} (${planInfo.label})</span>
           <button data-id="${m.id}" class="btn-send-wa px-3 py-1.5 rounded-xl bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition">
             <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> WhatsApp
           </button>
@@ -409,16 +435,18 @@ function renderDetailView() {
   const initials = member.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const planInfo = PLANS[member.plan] || PLANS.cardio;
   const statusInfo = getMemberPaymentStatus(member);
+  const displayPrice = member.total_price || planInfo.price;
 
   document.getElementById("detail-avatar").querySelector("span").textContent = initials;
   document.getElementById("detail-name").textContent = member.name;
-  document.getElementById("detail-plan-chip").textContent = `${planInfo.label} · ₹${planInfo.price}`;
+  document.getElementById("detail-plan-chip").textContent = `${planInfo.label} · Total ₹${displayPrice}`;
 
   const phoneEl = document.getElementById("detail-phone");
   phoneEl.textContent = member.phone;
   phoneEl.href = `tel:${member.phone}`;
 
   document.getElementById("detail-joined").textContent = member.joinDate || member.joindate || "N/A";
+  document.getElementById("detail-duration").textContent = `${member.duration || 1} Month(s) Program (${member.discount || 0}% Discount Applied)`;
 
   const [y, m] = selectedDetailMonth.split("-");
   const monthName = `${MONTHS[Number(m) - 1]} ${y}`;
@@ -490,6 +518,9 @@ function showAddModal() {
   document.getElementById("input-name").value = "";
   document.getElementById("input-phone").value = "";
   document.getElementById("input-join-date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("select-duration").value = "1";
+  document.getElementById("select-discount").value = "0";
+  calculateBillingTotal();
   document.getElementById("modal-add").classList.remove("hidden");
 }
 
@@ -542,11 +573,16 @@ function bindEvents() {
   document.getElementById("btn-open-add")?.addEventListener("click", showAddModal);
   document.getElementById("btn-close-add")?.addEventListener("click", hideAddModal);
 
+  // Billing dynamic changes
+  document.getElementById("select-duration")?.addEventListener("change", calculateBillingTotal);
+  document.getElementById("select-discount")?.addEventListener("change", calculateBillingTotal);
+
   document.querySelectorAll(".plan-option").forEach((btn) => {
     btn.addEventListener("click", () => {
       addPlanSelected = btn.dataset.plan;
       document.querySelectorAll(".plan-option").forEach((b) => b.classList.remove("border-[#FF6B6B]"));
       btn.classList.add("border-[#FF6B6B]");
+      calculateBillingTotal();
     });
   });
 
@@ -557,12 +593,17 @@ function bindEvents() {
 
     if (!name || !phone || !joinDate) return alert("All fields are required!");
 
+    const billing = calculateBillingTotal();
+
     await dbAddMember({
       id: uid(),
       name,
       phone,
       plan: addPlanSelected,
       joinDate,
+      duration: billing.durationMonths,
+      discount: billing.discountPercent,
+      total_price: billing.finalTotal,
       fees: {},
       attendance: {},
     });
