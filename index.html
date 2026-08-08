@@ -54,7 +54,7 @@
           <i data-lucide="dumbbell" class="w-6 h-6"></i>
         </div>
         <h1 class="text-xl font-black tracking-tight text-white">HUSTLE GYM</h1>
-        <p class="text-xs text-white/50">Admin Portal (Supabase Connected)</p>
+        <p class="text-xs text-white/50">Admin Access Portal</p>
       </div>
 
       <form id="login-form" class="space-y-4">
@@ -66,7 +66,7 @@
           <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Password</label>
           <input type="password" id="login-password" value="1234" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" required />
         </div>
-        <p id="auth-error" class="text-xs text-red-400 text-center font-semibold hidden">Galat Credentials!</p>
+        <p id="auth-error" class="text-xs text-red-400 text-center font-semibold hidden">Invalid Credentials!</p>
         <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF6B6B] to-[#D32F2F] font-bold text-sm text-white shadow-lg active:scale-[0.98] transition">
           Login
         </button>
@@ -74,7 +74,7 @@
     </div>
   </div>
 
-  <!-- MAIN APP -->
+  <!-- MAIN APP CONTAINER -->
   <div id="main-app" class="flex-1 flex flex-col hidden pb-20">
     <header class="p-4 flex items-center justify-between border-b border-white/5 bg-slate-900/50 backdrop-blur-md sticky top-0 z-30">
       <div class="flex items-center gap-2">
@@ -87,6 +87,7 @@
     </header>
 
     <main class="p-4 flex-1">
+      <!-- VIEW: MEMBERS -->
       <section id="view-members" class="view-section space-y-4">
         <div class="flex items-center justify-between">
           <div>
@@ -100,6 +101,7 @@
         <div id="members-list" class="space-y-2"></div>
       </section>
 
+      <!-- VIEW: FEES -->
       <section id="view-fees" class="view-section space-y-4 hidden">
         <div>
           <h2 class="text-lg font-bold">Monthly Fees</h2>
@@ -118,6 +120,7 @@
         <div id="fees-list" class="space-y-2"></div>
       </section>
 
+      <!-- VIEW: DUE -->
       <section id="view-due" class="view-section space-y-4 hidden">
         <div>
           <h2 class="text-lg font-bold text-red-400">Due List</h2>
@@ -126,6 +129,7 @@
         <div id="due-list" class="space-y-3"></div>
       </section>
 
+      <!-- VIEW: MEMBER DETAIL -->
       <section id="view-detail" class="view-section space-y-5 hidden">
         <div class="flex items-center justify-between">
           <button id="btn-back-detail" class="p-2 glass rounded-xl text-white/70 hover:text-white">
@@ -145,6 +149,7 @@
             <div class="mt-2 text-xs font-mono text-white/60 space-y-1">
               <p>Phone: <a id="detail-phone" class="text-emerald-400 underline"></a></p>
               <p>Joined: <span id="detail-joined"></span></p>
+              <p>Duration: <span id="detail-duration" class="text-amber-400 font-bold"></span></p>
             </div>
           </div>
         </div>
@@ -192,14 +197,18 @@
     </nav>
   </div>
 
-  <!-- ADD MEMBER MODAL -->
-  <div id="modal-add" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+  <!-- ADD MEMBER MODAL (WITH BILLING SECTION) -->
+  <div id="modal-add" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden overflow-y-auto">
     <div id="modal-add-overlay" class="absolute inset-0"></div>
-    <div class="glass glass-sheen relative w-full max-w-sm rounded-3xl p-5 space-y-4 z-10 bg-slate-900 border border-white/10">
+    <div class="glass glass-sheen relative w-full max-w-sm rounded-3xl p-5 space-y-4 z-10 bg-slate-900 border border-white/10 my-auto max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between">
-        <h3 class="font-bold text-base">Add New Member</h3>
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 text-[#FF6B6B]"></i> Add New Member
+        </h3>
         <button id="btn-close-add" class="text-white/50 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
+
+      <!-- MEMBER DETAILS -->
       <div class="space-y-3">
         <div>
           <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Full Name</label>
@@ -227,9 +236,48 @@
           <input type="date" id="input-join-date" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" />
         </div>
       </div>
-      <p id="add-error" class="text-xs text-red-400 hidden"><span id="add-error-msg">Please fill out all fields.</span></p>
-      <button id="btn-submit-add" class="w-full py-3 rounded-xl bg-[#FF6B6B] font-bold text-sm text-white shadow-lg active:scale-[0.98] transition">
-        Save Member
+
+      <!-- BILLING & PROGRAM SECTION -->
+      <div class="pt-3 border-t border-white/10 space-y-3">
+        <h4 class="text-xs font-bold uppercase text-[#FF6B6B] tracking-wider flex items-center gap-1.5">
+          <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Billing & Program Plan
+        </h4>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Membership Program</label>
+          <select id="select-duration" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]">
+            <option value="1">1 Month Plan</option>
+            <option value="3">3 Months Program</option>
+            <option value="6">6 Months Program</option>
+            <option value="12">1 Year Membership</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Apply Discount (%)</label>
+          <select id="select-discount" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]">
+            <option value="0">No Discount (0%)</option>
+            <option value="5">5% Discount</option>
+            <option value="10">10% Discount</option>
+            <option value="15">15% Discount</option>
+            <option value="20">20% Discount</option>
+            <option value="30">30% Discount</option>
+            <option value="50">50% Discount</option>
+          </select>
+        </div>
+
+        <!-- TOTAL PRICING DISPLAY -->
+        <div class="glass p-3 rounded-2xl flex items-center justify-between border border-emerald-500/30 bg-emerald-950/20">
+          <div>
+            <p class="text-[10px] uppercase font-bold text-white/50">Total Final Price</p>
+            <p class="text-[10px] text-white/40"><span id="lbl-original-price">₹1200</span> <span id="lbl-discount-tag" class="text-emerald-400 font-bold">(0% OFF)</span></p>
+          </div>
+          <p id="lbl-final-price" class="text-xl font-black text-emerald-400">₹1200</p>
+        </div>
+      </div>
+
+      <button id="btn-submit-add" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF6B6B] to-[#D32F2F] font-bold text-sm text-white shadow-lg active:scale-[0.98] transition">
+        Save Member & Generate Bill
       </button>
     </div>
   </div>
