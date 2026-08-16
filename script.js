@@ -130,6 +130,17 @@ async function dbDeleteMember(id) {
   else { selectedMemberId = null; document.getElementById("modal-delete").classList.add("hidden"); await fetchMembers(); }
 }
 
+// ==================== REAL-TIME SYNC ====================
+function initRealtimeSync() {
+  supabaseClient
+    .channel('public:members')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, payload => {
+      console.log('Realtime update received:', payload);
+      fetchMembers();
+    })
+    .subscribe();
+}
+
 // ==================== AUTHENTICATION & SECURE CREDENTIALS ====================
 function initLogin() {
   const loginForm = document.getElementById("login-form");
@@ -480,7 +491,6 @@ function bindEvents() {
     document.getElementById("input-custom-price").value = "";
     document.getElementById("custom-plan-fields").classList.add("hidden");
     
-    // Reset plan buttons
     document.querySelectorAll(".plan-option").forEach(b => {
       b.classList.remove("border-rose-500", "bg-rose-500/10");
       b.classList.add("border-white/10");
@@ -501,7 +511,6 @@ function bindEvents() {
   document.getElementById("select-discount")?.addEventListener("change", calculateBillingTotal);
   document.getElementById("input-custom-price")?.addEventListener("input", calculateBillingTotal);
 
-  // Plan Option Selector & Custom Plan Toggle
   document.querySelectorAll(".plan-option").forEach((btn) => btn.addEventListener("click", () => {
     addPlanSelected = btn.dataset.plan;
     document.querySelectorAll(".plan-option").forEach((b) => {
@@ -558,6 +567,7 @@ function initApp() {
   bindEvents();
   initAdminReset();
   initThemeToggle();
+  initRealtimeSync();
   fetchMembers();
 }
 
