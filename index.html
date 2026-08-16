@@ -10,252 +10,247 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      background: #0f172a;
-      color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .glass {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .glass-red {
-      background: rgba(220, 38, 38, 0.15);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .glass-sheen::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    }
-    .chip {
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .chip-ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-    .chip-red { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .chip-default { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); }
-  </style>
+  <!-- Bcrypt JS CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto shadow-2xl relative bg-slate-950">
+<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto shadow-2xl relative bg-[#07080a] overflow-x-hidden">
+
+  <!-- Professional Blurry SaaS Background Glows -->
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-rose-500/15 rounded-full blur-[100px] pointer-events-none z-0"></div>
+  <div class="absolute top-1/3 -right-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+  <div class="absolute bottom-1/4 -left-20 w-72 h-72 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
   <!-- AUTH SCREEN -->
-  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950">
-    <div class="glass glass-sheen w-full max-w-sm rounded-3xl p-6 space-y-6 border border-white/10">
+  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07080a]">
+    <div class="glass glass-sheen w-full max-w-sm rounded-3xl p-6 space-y-6 border border-white/10 relative z-10 shadow-2xl">
       <div class="text-center space-y-2">
-        <div class="w-12 h-12 rounded-2xl bg-[#FF6B6B]/20 text-[#FF6B6B] flex items-center justify-center mx-auto border border-[#FF6B6B]/30">
-          <i data-lucide="dumbbell" class="w-6 h-6"></i>
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-red-600/30 text-[#FF6B6B] flex items-center justify-center mx-auto border border-rose-500/30 shadow-inner">
+          <i data-lucide="dumbbell" class="w-7 h-7"></i>
         </div>
         <h1 class="text-xl font-black tracking-tight text-white">HUSTLE GYM</h1>
-        <p class="text-xs text-white/50">Admin Access Portal</p>
+        <p class="text-xs text-slate-400 font-medium">Enterprise Management Portal</p>
       </div>
 
       <form id="login-form" class="space-y-4">
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Username</label>
-          <input type="text" id="login-username" value="admin" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" required />
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Username</label>
+          <input type="text" id="login-username" value="admin" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition" required />
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Password</label>
-          <input type="password" id="login-password" value="1234" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" required />
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Password</label>
+          <input type="password" id="login-password" value="1234" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition" required />
         </div>
-        <p id="auth-error" class="text-xs text-red-400 text-center font-semibold hidden">Invalid Credentials!</p>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF6B6B] to-[#D32F2F] font-bold text-sm text-white shadow-lg active:scale-[0.98] transition">
-          Login
+        <p id="auth-error" class="text-xs text-rose-400 text-center font-semibold hidden">Invalid Credentials!</p>
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 font-bold text-sm text-white shadow-lg shadow-rose-500/20 active:scale-[0.98] transition">
+          Secure Login
         </button>
       </form>
     </div>
   </div>
 
   <!-- MAIN APP CONTAINER -->
-  <div id="main-app" class="flex-1 flex flex-col hidden pb-20">
-    <header class="p-4 flex items-center justify-between border-b border-white/5 bg-slate-900/50 backdrop-blur-md sticky top-0 z-30">
-      <div class="flex items-center gap-2">
-        <i data-lucide="dumbbell" class="w-5 h-5 text-[#FF6B6B]"></i>
-        <span class="font-black tracking-wider text-sm">HUSTLE GYM</span>
+  <div id="main-app" class="flex-1 flex flex-col hidden pb-24 relative z-10">
+    <header class="p-4 flex items-center justify-between border-b border-white/5 bg-[#07080a]/80 backdrop-blur-xl sticky top-0 z-30">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-rose-500/20 flex items-center justify-center border border-rose-500/30">
+          <i data-lucide="dumbbell" class="w-4 h-4 text-rose-400"></i>
+        </div>
+        <span class="font-black tracking-wider text-sm bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">HUSTLE GYM</span>
       </div>
-      <button id="btn-logout" class="text-xs text-white/50 hover:text-white flex items-center gap-1">
-        <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Logout
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-toggle-theme" class="text-xs text-slate-300 hover:text-white flex items-center gap-1.5 glass px-3 py-1.5 rounded-xl transition">
+          <i data-lucide="sun" id="theme-icon" class="w-3.5 h-3.5 text-amber-400"></i> <span id="theme-text">Theme</span>
+        </button>
+        <button id="btn-open-reset" class="p-2 text-slate-400 hover:text-white glass rounded-xl transition" title="Reset Credentials">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+        </button>
+        <button id="btn-logout" class="p-2 text-slate-400 hover:text-rose-400 glass rounded-xl transition" title="Logout">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
     </header>
 
-    <main class="p-4 flex-1">
+    <main class="p-4 flex-1 space-y-4">
       <!-- VIEW: MEMBERS -->
       <section id="view-members" class="view-section space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-lg font-bold">Members</h2>
-            <p id="members-count" class="text-xs text-white/50">Loading...</p>
+            <h2 class="text-lg font-black tracking-tight">Active Members</h2>
+            <p id="members-count" class="text-xs text-slate-400">Loading directory...</p>
           </div>
-          <button id="btn-open-add" class="px-3 py-2 rounded-xl bg-[#FF6B6B] text-white font-bold text-xs flex items-center gap-1.5 active:scale-95 transition shadow-lg">
+          <button id="btn-open-add" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 text-white font-bold text-xs flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-rose-500/25">
             <i data-lucide="plus" class="w-4 h-4"></i> Add Member
           </button>
         </div>
-        <div id="members-list" class="space-y-2"></div>
+        <div id="members-list" class="space-y-2.5"></div>
       </section>
 
       <!-- VIEW: FEES -->
       <section id="view-fees" class="view-section space-y-4 hidden">
         <div>
-          <h2 class="text-lg font-bold">Monthly Fees</h2>
-          <p class="text-xs text-white/50">Manage status for this month</p>
+          <h2 class="text-lg font-black tracking-tight">Monthly Fees</h2>
+          <p class="text-xs text-slate-400">Track current billing status</p>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div class="glass p-3 rounded-2xl text-center">
-            <p class="text-[10px] uppercase font-bold text-emerald-400">Paid</p>
-            <p id="fees-paid-count" class="text-xl font-black mt-1">0</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass p-3.5 rounded-2xl text-center border border-emerald-500/20 bg-emerald-950/10">
+            <p class="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Paid Accounts</p>
+            <p id="fees-paid-count" class="text-2xl font-black mt-1 text-emerald-400">0</p>
           </div>
-          <div class="glass p-3 rounded-2xl text-center">
-            <p class="text-[10px] uppercase font-bold text-red-400">Pending</p>
-            <p id="fees-pending-count" class="text-xl font-black mt-1">0</p>
+          <div class="glass p-3.5 rounded-2xl text-center border border-rose-500/20 bg-rose-950/10">
+            <p class="text-[10px] uppercase font-bold tracking-wider text-rose-400">Pending Dues</p>
+            <p id="fees-pending-count" class="text-2xl font-black mt-1 text-rose-400">0</p>
           </div>
         </div>
-        <div id="fees-list" class="space-y-2"></div>
+        <div id="fees-list" class="space-y-2.5"></div>
       </section>
 
       <!-- VIEW: DUE -->
       <section id="view-due" class="view-section space-y-4 hidden">
         <div>
-          <h2 class="text-lg font-bold text-red-400">Due List</h2>
-          <p id="due-summary-text" class="text-xs text-white/50">0 members unpaid</p>
+          <h2 class="text-lg font-black tracking-tight text-rose-400">Overdue List</h2>
+          <p id="due-summary-text" class="text-xs text-slate-400">0 members unpaid</p>
         </div>
         <div id="due-list" class="space-y-3"></div>
       </section>
 
       <!-- VIEW: MEMBER DETAIL -->
-      <section id="view-detail" class="view-section space-y-5 hidden">
+      <section id="view-detail" class="view-section space-y-4 hidden">
         <div class="flex items-center justify-between">
-          <button id="btn-back-detail" class="p-2 glass rounded-xl text-white/70 hover:text-white">
+          <button id="btn-back-detail" class="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition">
             <i data-lucide="arrow-left" class="w-4 h-4"></i>
           </button>
-          <span class="text-xs font-mono text-white/50">Member Details</span>
-          <button id="btn-delete-member" class="p-2 glass-red rounded-xl text-red-400 hover:text-red-300">
+          <span class="text-xs font-mono text-slate-400">Member Dossier</span>
+          <button id="btn-delete-member" class="p-2.5 glass rounded-xl text-rose-400 hover:bg-rose-500/20 transition">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
 
-        <div class="glass glass-sheen p-4 rounded-2xl flex items-center gap-4">
-          <div id="detail-avatar"><span></span></div>
+        <div class="glass glass-sheen p-4 rounded-2xl flex items-center gap-4 border border-white/10">
+          <div id="detail-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500/20 to-red-600/30 text-rose-400 font-bold flex items-center justify-center border border-rose-500/30 text-sm"><span></span></div>
           <div class="flex-1 min-w-0">
-            <h3 id="detail-name" class="font-bold text-base truncate"></h3>
+            <h3 id="detail-name" class="font-bold text-base text-white truncate"></h3>
             <span id="detail-plan-chip" class="chip chip-default mt-1 inline-block"></span>
-            <div class="mt-2 text-xs font-mono text-white/60 space-y-1">
-              <p>Phone: <a id="detail-phone" class="text-emerald-400 underline"></a></p>
-              <p>Joined: <span id="detail-joined"></span></p>
-              <p>Duration: <span id="detail-duration" class="text-amber-400 font-bold"></span></p>
+            <div class="mt-2 text-xs font-mono text-slate-300 space-y-1">
+              <p>Phone: <a id="detail-phone" class="text-rose-400 underline font-semibold"></a></p>
+              <p>Joined: <span id="detail-joined" class="text-slate-200"></span></p>
+              <p>Program: <span id="detail-duration" class="text-amber-400 font-bold"></span></p>
             </div>
           </div>
         </div>
 
-        <div class="glass p-4 rounded-2xl space-y-3">
+        <div class="glass p-4 rounded-2xl space-y-3 border border-white/10">
           <div class="flex items-center justify-between">
-            <button id="btn-month-prev" class="p-1.5 glass rounded-lg"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-            <span id="detail-fee-month" class="font-bold text-sm"></span>
-            <button id="btn-month-next" class="p-1.5 glass rounded-lg"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            <button id="btn-month-prev" class="p-2 glass rounded-xl text-slate-300 hover:text-white"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <span id="detail-fee-month" class="font-bold text-sm text-white"></span>
+            <button id="btn-month-next" class="p-2 glass rounded-xl text-slate-300 hover:text-white"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
           </div>
-          <div class="flex items-center justify-between pt-2 border-t border-white/10">
-            <span class="text-xs text-white/60">Status: <strong id="detail-fee-status"></strong></span>
+          <div class="flex items-center justify-between pt-3 border-t border-white/10">
+            <span class="text-xs text-slate-300">Status: <strong id="detail-fee-status"></strong></span>
             <div class="flex gap-2">
-              <button id="btn-set-paid" class="px-3 py-1.5 glass rounded-xl text-xs font-bold uppercase">Mark Paid</button>
-              <button id="btn-set-due" class="px-3 py-1.5 glass rounded-xl text-xs font-bold uppercase">Mark Due</button>
+              <button id="btn-set-paid" class="px-3.5 py-2 glass rounded-xl text-xs font-bold uppercase transition hover:border-emerald-500/50">Paid</button>
+              <button id="btn-set-due" class="px-3.5 py-2 glass rounded-xl text-xs font-bold uppercase transition hover:border-rose-500/50">Due</button>
             </div>
           </div>
         </div>
 
-        <div class="glass p-4 rounded-2xl space-y-3">
+        <div class="glass p-4 rounded-2xl space-y-3 border border-white/10">
           <div class="flex items-center justify-between">
-            <h4 class="font-bold text-xs uppercase text-white/60">Attendance Calendar</h4>
-            <span class="text-xs font-mono text-emerald-400"><span id="attendance-count">0</span> / <span id="attendance-days-total">30</span> Present</span>
+            <h4 class="font-bold text-xs uppercase text-slate-400 tracking-wider">Attendance Calendar</h4>
+            <span class="text-xs font-mono text-emerald-400 font-bold"><span id="attendance-count">0</span> / <span id="attendance-days-total">30</span> Present</span>
           </div>
-          <p id="attendance-month-label" class="text-[10px] font-mono text-white/40"></p>
+          <p id="attendance-month-label" class="text-[10px] font-mono text-slate-500"></p>
           <div id="attendance-grid" class="grid grid-cols-7 gap-1.5 pt-2"></div>
         </div>
       </section>
     </main>
 
-    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto glass border-t border-white/10 p-2 flex justify-around items-center z-40 bg-slate-900/80 backdrop-blur-lg">
-      <button data-tab="members" class="nav-btn flex flex-col items-center gap-1 p-2">
-        <i data-lucide="users" class="nav-icon w-5 h-5 text-[#FF6B6B]"></i>
-        <span class="nav-text text-[10px] font-bold text-[#FF6B6B]">Members</span>
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto glass border-t border-white/10 p-2.5 flex justify-around items-center z-40 bg-[#07080a]/90 backdrop-blur-xl">
+      <button data-tab="members" class="nav-btn flex flex-col items-center gap-1 p-2 transition">
+        <i data-lucide="users" class="nav-icon w-5 h-5 text-rose-500"></i>
+        <span class="nav-text text-[10px] font-bold text-rose-500">Members</span>
       </button>
-      <button data-tab="fees" class="nav-btn flex flex-col items-center gap-1 p-2">
-        <i data-lucide="indian-rupee" class="nav-icon w-5 h-5 text-white/60"></i>
-        <span class="nav-text text-[10px] font-bold text-white/60">Fees</span>
+      <button data-tab="fees" class="nav-btn flex flex-col items-center gap-1 p-2 transition">
+        <i data-lucide="indian-rupee" class="nav-icon w-5 h-5 text-slate-400"></i>
+        <span class="nav-text text-[10px] font-bold text-slate-400">Fees</span>
       </button>
-      <button data-tab="due" class="nav-btn flex flex-col items-center gap-1 p-2 relative">
-        <i data-lucide="alert-circle" class="nav-icon w-5 h-5 text-white/60"></i>
-        <span class="nav-text text-[10px] font-bold text-white/60">Due List</span>
-        <span id="due-badge" class="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center hidden">0</span>
+      <button data-tab="due" class="nav-btn flex flex-col items-center gap-1 p-2 relative transition">
+        <i data-lucide="alert-circle" class="nav-icon w-5 h-5 text-slate-400"></i>
+        <span class="nav-text text-[10px] font-bold text-slate-400">Due List</span>
+        <span id="due-badge" class="absolute top-1 right-2 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-lg hidden">0</span>
       </button>
     </nav>
   </div>
 
-  <!-- ADD MEMBER MODAL (WITH BILLING SECTION) -->
-  <div id="modal-add" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden overflow-y-auto">
+  <!-- ADD MEMBER MODAL WITH CUSTOM PLAN SUPPORT -->
+  <div id="modal-add" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto">
     <div id="modal-add-overlay" class="absolute inset-0"></div>
-    <div class="glass glass-sheen relative w-full max-w-sm rounded-3xl p-5 space-y-4 z-10 bg-slate-900 border border-white/10 my-auto max-h-[90vh] overflow-y-auto">
+    <div class="glass glass-sheen relative w-full max-w-sm rounded-3xl p-5 space-y-4 z-10 bg-[#0f1117] border border-white/10 my-auto max-h-[90vh] overflow-y-auto shadow-2xl">
       <div class="flex items-center justify-between">
-        <h3 class="font-bold text-base flex items-center gap-2">
-          <i data-lucide="user-plus" class="w-4 h-4 text-[#FF6B6B]"></i> Add New Member
+        <h3 class="font-bold text-sm flex items-center gap-2 text-white">
+          <i data-lucide="user-plus" class="w-4 h-4 text-rose-500"></i> Add New Member
         </h3>
-        <button id="btn-close-add" class="text-white/50 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <button id="btn-close-add" class="text-slate-400 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
-      <!-- MEMBER DETAILS -->
       <div class="space-y-3">
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Full Name</label>
-          <input type="text" id="input-name" placeholder="e.g. Rahul Sharma" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" />
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Full Name</label>
+          <input type="text" id="input-name" placeholder="e.g. Rahul Sharma" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" />
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Phone Number</label>
-          <input type="tel" id="input-phone" placeholder="10-digit mobile number" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" />
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Phone Number</label>
+          <input type="tel" id="input-phone" placeholder="10-digit mobile number" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" />
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Select Plan</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button data-plan="cardio" class="plan-option border border-[#FF6B6B] p-2 rounded-xl text-left glass">
-              <p class="font-bold text-xs">Cardio + Weights</p>
-              <p class="text-[10px] opacity-60">₹1200 / mo</p>
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Select Plan</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button data-plan="cardio" type="button" class="plan-option border border-rose-500 p-2.5 rounded-xl text-left glass bg-rose-500/10 transition">
+              <p class="font-bold text-xs text-white">Cardio</p>
+              <p class="text-[10px] text-slate-400">₹1200 / mo</p>
             </button>
-            <button data-plan="basic" class="plan-option border border-transparent text-white/70 p-2 rounded-xl text-left glass">
-              <p class="font-bold text-xs">Weights Only</p>
-              <p class="text-[10px] opacity-60">₹800 / mo</p>
+            <button data-plan="basic" type="button" class="plan-option border border-white/10 text-slate-300 p-2.5 rounded-xl text-left glass transition">
+              <p class="font-bold text-xs text-white">Weights</p>
+              <p class="text-[10px] text-slate-400">₹800 / mo</p>
+            </button>
+            <button data-plan="custom" type="button" class="plan-option border border-white/10 text-slate-300 p-2.5 rounded-xl text-left glass transition">
+              <p class="font-bold text-xs text-white">Custom</p>
+              <p class="text-[10px] text-slate-400">Custom Plan</p>
             </button>
           </div>
         </div>
+
+        <!-- CUSTOM PLAN INPUT FIELDS -->
+        <div id="custom-plan-fields" class="space-y-3 hidden p-3 rounded-xl bg-white/5 border border-white/10">
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-1">Custom Plan Name</label>
+            <input type="text" id="input-custom-name" placeholder="e.g. Personal Training / VIP" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" />
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-1">Custom Monthly Price (₹)</label>
+            <input type="number" id="input-custom-price" placeholder="e.g. 1500" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" />
+          </div>
+        </div>
+
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Joining Date</label>
-          <input type="date" id="input-join-date" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]" />
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Joining Date</label>
+          <input type="date" id="input-join-date" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" />
         </div>
       </div>
 
-      <!-- BILLING & PROGRAM SECTION -->
       <div class="pt-3 border-t border-white/10 space-y-3">
-        <h4 class="text-xs font-bold uppercase text-[#FF6B6B] tracking-wider flex items-center gap-1.5">
-          <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Billing & Program Plan
-        </h4>
-
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Membership Program</label>
-          <select id="select-duration" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]">
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Membership Duration</label>
+          <select id="select-duration" class="w-full bg-[#161922] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500">
             <option value="1">1 Month Plan</option>
             <option value="3">3 Months Program</option>
             <option value="6">6 Months Program</option>
             <option value="12">1 Year Membership</option>
           </select>
         </div>
-
         <div>
-          <label class="text-[10px] font-bold uppercase text-white/50 block mb-1">Apply Discount (%)</label>
-          <select id="select-discount" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF6B6B]">
+          <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Apply Discount (%)</label>
+          <select id="select-discount" class="w-full bg-[#161922] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500">
             <option value="0">No Discount (0%)</option>
             <option value="5">5% Discount</option>
             <option value="10">10% Discount</option>
@@ -265,32 +260,59 @@
             <option value="50">50% Discount</option>
           </select>
         </div>
-
-        <!-- TOTAL PRICING DISPLAY -->
-        <div class="glass p-3 rounded-2xl flex items-center justify-between border border-emerald-500/30 bg-emerald-950/20">
+        <div class="glass p-3.5 rounded-2xl flex items-center justify-between border border-emerald-500/30 bg-emerald-950/20">
           <div>
-            <p class="text-[10px] uppercase font-bold text-white/50">Total Final Price</p>
-            <p class="text-[10px] text-white/40"><span id="lbl-original-price">₹1200</span> <span id="lbl-discount-tag" class="text-emerald-400 font-bold">(0% OFF)</span></p>
+            <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Final Price</p>
+            <p class="text-[11px] text-slate-300 mt-0.5"><span id="lbl-original-price">₹1200</span> <span id="lbl-discount-tag" class="text-emerald-400 font-bold">(0% OFF)</span></p>
           </div>
-          <p id="lbl-final-price" class="text-xl font-black text-emerald-400">₹1200</p>
+          <p id="lbl-final-price" class="text-2xl font-black text-emerald-400">₹1200</p>
         </div>
       </div>
-
-      <button id="btn-submit-add" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF6B6B] to-[#D32F2F] font-bold text-sm text-white shadow-lg active:scale-[0.98] transition">
-        Save Member & Generate Bill
+      <button id="btn-submit-add" type="button" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 font-bold text-xs uppercase tracking-wider text-white shadow-lg active:scale-[0.98] transition">
+        Save Member to Supabase
       </button>
     </div>
   </div>
 
+  <!-- RESET CREDENTIALS MODAL -->
+  <div id="modal-reset" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div id="modal-reset-overlay" class="absolute inset-0"></div>
+    <div class="glass glass-sheen relative w-full max-w-xs rounded-3xl p-5 space-y-4 z-10 bg-[#0f1117] border border-white/10 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2 text-white">
+          <i data-lucide="key" class="w-4 h-4 text-rose-500"></i> Reset Admin Details
+        </h3>
+        <button id="btn-close-reset" class="text-slate-400 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="form-reset-creds" class="space-y-3">
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">New Username</label>
+          <input type="text" id="input-new-user" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" required />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Old Password</label>
+          <input type="password" id="input-old-pass" placeholder="Enter current password" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" required />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">New Password</label>
+          <input type="password" id="input-new-pass" placeholder="Enter new password" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" required />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 font-bold text-xs uppercase tracking-wider text-white shadow-lg active:scale-[0.98] transition">
+          Update Credentials
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- DELETE MODAL -->
-  <div id="modal-delete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+  <div id="modal-delete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
     <div id="modal-delete-overlay" class="absolute inset-0"></div>
-    <div class="glass-red relative w-full max-w-xs rounded-3xl p-5 text-center space-y-4 z-10 bg-slate-900 border border-red-500/30">
-      <h3 id="delete-title" class="font-bold text-base text-white">Remove Member?</h3>
-      <p class="text-xs text-white/60">Data Supabase se permanently delete ho jayega.</p>
+    <div class="glass relative w-full max-w-xs rounded-3xl p-5 text-center space-y-4 z-10 bg-[#0f1117] border border-rose-500/30 shadow-2xl">
+      <h3 class="font-bold text-base text-white">Remove Member?</h3>
+      <p class="text-xs text-slate-400">Data Supabase se permanently delete ho jayega.</p>
       <div class="flex gap-2">
-        <button id="btn-cancel-delete" class="flex-1 py-2.5 rounded-xl glass text-xs font-bold">Cancel</button>
-        <button id="btn-confirm-delete" class="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold shadow-lg">Delete</button>
+        <button id="btn-cancel-delete" class="flex-1 py-2.5 rounded-xl glass text-xs font-bold text-slate-300 hover:text-white transition">Cancel</button>
+        <button id="btn-confirm-delete" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 text-white text-xs font-bold shadow-lg transition">Delete</button>
       </div>
     </div>
   </div>
