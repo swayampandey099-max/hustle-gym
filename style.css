@@ -1,142 +1,46 @@
-/* Base Layout & Global Text Color Reset */
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 body {
-  background-color: #0c0c0e;
-  color: #ffffff !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
+  background-color: #07080a;
+  color: #f8fafc !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 0;
 }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
 
-/* Force all grey/muted utility classes to pure high-contrast white */
-.text-\[\#B4B4BC\],
-.text-\[\#6A6A74\],
-.text-\[\#9A9AA5\],
-.text-\[\#C8C8D0\],
-.text-\[\#E8C4C4\],
-.text-\[\#EED4D4\] {
-  color: #ffffff !important;
+input, select, textarea {
+  color: #f8fafc !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.2s ease;
 }
+input:focus, select:focus { border-color: #f43f5e !important; box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.25); }
+input::placeholder { color: rgba(248, 250, 252, 0.35) !important; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.7); }
+label { color: #94a3b8 !important; }
 
-/* Form Inputs, Selects, & Modals */
-input,
-select,
-textarea {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* Fix browser date picker icon contrast */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-}
-
-label {
-  color: #ffffff !important;
-}
-
-/* Glassmorphism Containers */
 .glass {
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(18, 20, 28, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.5);
 }
-
-.glass-red {
-  background: rgba(239, 68, 68, 0.18);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-}
-
+.glass-sheen { position: relative; overflow: hidden; }
 .glass-sheen::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
 }
 
-/* Status Chips & Badges */
-.chip {
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+.chip { padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.chip-ok { background: rgba(34, 197, 94, 0.18); color: #4ade80 !important; border: 1px solid rgba(34, 197, 94, 0.35); }
+.chip-red { background: rgba(244, 63, 94, 0.18); color: #f87171 !important; border: 1px solid rgba(244, 63, 94, 0.35); }
+.chip-default { background: rgba(255, 255, 255, 0.1); color: #cbd5e1 !important; }
 
-.chip-default {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff !important;
-}
-
-.chip-ok {
-  background: rgba(34, 197, 94, 0.25);
-  color: #86efac !important;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-.chip-red {
-  background: rgba(239, 68, 68, 0.25);
-  color: #fca5a5 !important;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-/* Preserve Status Accent Text Colors */
-.text-\[\#86EFAC\] {
-  color: #86efac !important;
-}
-
-.text-\[\#FCA5A5\] {
-  color: #fca5a5 !important;
-}
-
-.text-\[\#FF6B6B\] {
-  color: #ff6b6b !important;
-}
-
-/* Navigation Icons and Labels */
-.nav-text {
-  color: #ffffff;
-}
-
-/* Ripple Interaction Effect */
-.ripple-surface {
-  position: relative;
-  overflow: hidden;
-}
-
-.ripple-dot {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  transform: scale(0);
-  animation: ripple 0.65s linear;
-  pointer-events: none;
-}
-
-.ripple-dot.tint-red {
-  background: rgba(239, 68, 68, 0.45);
-}
-
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
+/* Light Theme Variables & Overrides */
+body.light-theme { background-color: #f1f5f9 !important; color: #0f172a !important; }
+body.light-theme p, body.light-theme span, body.light-theme h1, body.light-theme h2, body.light-theme h3, body.light-theme label, body.light-theme strong { color: #0f172a !important; }
+body.light-theme .glass { background: rgba(255, 255, 255, 0.85) !important; border: 1px solid rgba(0, 0, 0, 0.08) !important; box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.05); }
+body.light-theme header, body.light-theme nav#bottom-nav { background: rgba(255, 255, 255, 0.9) !important; }
+body.light-theme input, body.light-theme select { background-color: rgba(0, 0, 0, 0.04) !important; color: #0f172a !important; border-color: rgba(0, 0, 0, 0.15) !important; }
+body.light-theme input::placeholder { color: rgba(15, 23, 42, 0.4) !important; }
